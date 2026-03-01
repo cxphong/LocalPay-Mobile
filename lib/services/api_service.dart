@@ -110,4 +110,30 @@ class ApiService {
       throw Exception('Failed to get balance: ${response.body}');
     }
   }
+
+  Future<List<Map<String, dynamic>>> getBalances(String address) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/wallet/balances/$address'),
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return List<Map<String, dynamic>>.from(decoded['data']['balances']);
+    } else {
+      throw Exception('Failed to get balances: ${response.body}');
+    }
+  }
+
+  Future<String> getFeePayerAddress() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/wallet/fee-payer'),
+    );
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      return decoded['data']['address'];
+    } else {
+      throw Exception('Failed to get fee payer address: ${response.body}');
+    }
+  }
 }

@@ -77,19 +77,31 @@ class PaymentProvider with ChangeNotifier {
           websocketUrl: Uri.parse('wss://api.devnet.solana.com'),
         );
 
-        final messageBytes = base64Decode(updatedIntent.serializedTx!);
+        final txBytes = base64Decode(updatedIntent.serializedTx!);
+        final sigCount = txBytes[0];
+        // Message starts after sigCount (1 byte) and signatures (N * 64 bytes)
+        final messageBytes = txBytes.sublist(1 + (sigCount * 64));
         
         // Sign the message bytes with user's keypair
         final signature = await keyPair.sign(messageBytes);
         
         try {
-          // Construct the wire format transaction: [sigCount][signature][message]
-          // sigCount is 1 (0x01)
-          final rawTx = Uint8List.fromList([1, ...signature.bytes, ...messageBytes]);
+          late String encodedTx;
+          if (sigCount > 1) {
+            // Gasless case: Backend is 1st signer (Fee Payer), User is 2nd signer
+            // Replace the placeholder (2nd signature) in the existing transaction bytes
+            final newTxBytes = Uint8List.fromList(txBytes);
+            newTxBytes.setRange(1 + 64, 1 + 128, signature.bytes);
+            encodedTx = base64Encode(newTxBytes);
+            debugPrint('Multi-sig transaction prepared (Gasless)');
+          } else {
+            // Traditional case: Only user signs
+            final rawTx = Uint8List.fromList([1, ...signature.bytes, ...messageBytes]);
+            encodedTx = base64Encode(rawTx);
+            debugPrint('Single-sig transaction prepared');
+          }
 
-          final txSignature = await client.rpcClient.sendTransaction(
-            base64Encode(rawTx),
-          );
+          final txSignature = await client.rpcClient.sendTransaction(encodedTx);
           debugPrint('Transaction submitted: $txSignature');
         } catch (e) {
           debugPrint('Transaction submission failed: $e');

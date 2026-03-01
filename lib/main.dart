@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:localpay_mobile/screens/qr_scanner_screen.dart';
+import 'package:localpay_mobile/main_navigation.dart';
+import 'package:localpay_mobile/screens/onboarding_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:localpay_mobile/providers/payment_provider.dart';
 import 'package:localpay_mobile/providers/wallet_provider.dart';
@@ -36,7 +37,14 @@ class LocalPayApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color(0xFF0F172A),
       ),
-      home: const QRScannerScreen(),
+      home: Consumer<WalletProvider>(
+        builder: (context, provider, child) {
+          if (!provider.hasWallet) {
+            return const OnboardingScreen();
+          }
+          return const MainNavigation();
+        },
+      ),
     );
   }
 }

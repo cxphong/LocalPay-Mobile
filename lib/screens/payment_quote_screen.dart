@@ -73,33 +73,42 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
           final quote = provider.currentQuote;
           final isFetching = provider.isFetchingQuote;
 
-          return Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildMerchantCard(intent),
-                const SizedBox(height: 32),
-                const Text(
-                  'Select Payment Token',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 16),
-                _buildTokenSelector(),
-                const Spacer(),
-                if (context.watch<WalletProvider>().hasWallet) ...[
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  _buildMerchantHeader(intent),
+                  const SizedBox(height: 48),
                   if (quote != null) 
-                    _buildQuoteDetails(quote, isFetching)
+                    _buildHeroAmount(quote)
                   else
                     const Center(child: Padding(
-                      padding: EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(40.0),
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )),
-                  const SizedBox(height: 24),
-                  _buildPayButton(provider),
-                ] else 
-                  _buildNoWalletWarning(context),
-              ],
+                  const SizedBox(height: 48),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Pay with',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white70),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildTokenSelector(),
+                  const SizedBox(height: 40),
+                  if (quote != null) ...[
+                    _buildQuoteBreakdown(quote, isFetching),
+                    const SizedBox(height: 40),
+                    if (context.watch<WalletProvider>().hasWallet)
+                      _buildPayButton(provider)
+                    else 
+                      _buildNoWalletWarning(context),
+                  ],
+                ],
+              ),
             ),
           );
         },
@@ -151,28 +160,44 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
     );
   }
 
-  Widget _buildMerchantCard(intent) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('PAYING TO', style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.2)),
-          const SizedBox(height: 8),
-          Text(intent.merchantName, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 24),
-          const Divider(color: Colors.white10),
-          const SizedBox(height: 24),
-          const Text('AMOUNT DUE', style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.2)),
-          const SizedBox(height: 8),
-          Text(currencyFormat.format(intent.amountVnd), style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, color: Color(0xFF6366F1))),
-        ],
-      ),
+  Widget _buildMerchantHeader(intent) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFF6366F1).withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.storefront, color: Color(0xFF6366F1), size: 32),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          intent.merchantName,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Merchant Payment',
+          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeroAmount(quote) {
+    return Column(
+      children: [
+        Text(
+          '${quote.amountCrypto} ${quote.token}',
+          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '≈ ${currencyFormat.format(context.watch<PaymentProvider>().currentIntent?.amountVnd ?? 0)}',
+          style: TextStyle(fontSize: 18, color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 
@@ -210,53 +235,62 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
     );
   }
 
-  Widget _buildQuoteDetails(quote, bool isFetching) {
+  Widget _buildQuoteBreakdown(quote, bool isFetching) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white.withOpacity(0.03),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: Column(
         children: [
+          _buildRow('Exchange Rate', '1 ${quote.token} = ${NumberFormat.compactSimpleCurrency(locale: 'vi_VN', name: '₫').format(quote.rate)}', isPending: isFetching),
+          const SizedBox(height: 16),
+          _buildRow('Network Fee', 'Free (Demo)', color: Colors.green),
+          const SizedBox(height: 20),
+          const Divider(color: Colors.white10),
+          const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              const Text('Quote expires in', style: TextStyle(color: Colors.white54)),
               Row(
                 children: [
-                  const Text('Rate', style: TextStyle(color: Colors.white54)),
-                  const SizedBox(width: 8),
-                  if (isFetching) 
-                    const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white54)),
+                  Icon(Icons.timer_outlined, size: 14, color: _secondsRemaining < 5 ? Colors.redAccent : const Color(0xFF6366F1)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${_secondsRemaining}s',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: _secondsRemaining < 5 ? Colors.redAccent : const Color(0xFF6366F1),
+                    ),
+                  ),
                 ],
               ),
-              Text('1 ${quote.token} = ${currencyFormat.format(quote.rate)}'),
             ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('You Pay', style: TextStyle(color: Colors.white54)),
-              Text('${quote.amountCrypto} ${quote.token}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: _secondsRemaining / 30,
-            backgroundColor: Colors.white10,
-            color: _secondsRemaining < 5 ? Colors.redAccent : const Color(0xFF6366F1),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Quote expires in $_secondsRemaining s',
-            style: TextStyle(
-              fontSize: 11,
-              color: _secondsRemaining < 5 ? Colors.redAccent : Colors.white54,
-            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRow(String label, String value, {bool isPending = false, Color? color}) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.white54)),
+        Row(
+          children: [
+            if (isPending)
+              const Padding(
+                padding: EdgeInsets.only(right: 8.0),
+                child: SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white38)),
+              ),
+            Text(value, style: TextStyle(fontWeight: FontWeight.w600, color: color ?? Colors.white)),
+          ],
+        ),
+      ],
     );
   }
 

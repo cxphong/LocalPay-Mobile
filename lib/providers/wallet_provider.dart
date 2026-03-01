@@ -18,13 +18,15 @@ class WalletProvider with ChangeNotifier {
   Ed25519HDKeyPair? _keyPair;
   String? _mnemonic;
   double _solBalance = 0;
+  Map<String, double> _tokenBalances = {};
   bool _isLoading = false;
   String? _error;
-
+  
   Ed25519HDKeyPair? get keyPair => _keyPair;
   String? get address => _keyPair?.address;
   String? get mnemonic => _mnemonic;
   double get solBalance => _solBalance;
+  Map<String, double> get tokenBalances => _tokenBalances;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasWallet => _keyPair != null;
@@ -53,18 +55,25 @@ class WalletProvider with ChangeNotifier {
   }
 
   Future<void> createWallet() async {
+    final mnemonic = bip39.generateMnemonic();
+    await importWallet(mnemonic);
+  }
+
+  Future<void> importWallet(String mnemonic) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      final mnemonic = bip39.generateMnemonic();
+      if (!bip39.validateMnemonic(mnemonic)) {
+        throw Exception('Invalid mnemonic phrase');
+      }
       await _storage.write(key: 'solana_mnemonic', value: mnemonic);
       _mnemonic = mnemonic;
       _keyPair = await Ed25519HDKeyPair.fromMnemonic(mnemonic);
       await refreshBalance();
     } catch (e) {
-      _error = 'Failed to create wallet: $e';
+      _error = e.toString();
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -75,11 +84,14 @@ class WalletProvider with ChangeNotifier {
     if (_keyPair == null) return;
     
     try {
-      final balance = await _apiService.getBalance(_keyPair!.address);
-      _solBalance = balance;
+      final balances = await _apiService.getBalances(_keyPair!.address);
+      _tokenBalances = {
+        for (var b in balances) b['symbol']: (b['amount'] as num).toDouble()
+      };
+      _solBalance = _tokenBalances['SOL'] ?? 0;
       notifyListeners();
     } catch (e) {
-      debugPrint('Failed to refresh balance: $e');
+      debugPrint('Failed to refresh balances: $e');
     }
   }
 
@@ -111,5 +123,21 @@ class WalletProvider with ChangeNotifier {
     _mnemonic = null;
     _solBalance = 0;
     notifyListeners();
+  }
+
+  Future<void> fundServerWallet() async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final address = await _apiService.getFeePayerAddress();
+      await _apiService.requestAirdrop(address);
+    } catch (e) {
+      _error = 'Failed to fund server: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }

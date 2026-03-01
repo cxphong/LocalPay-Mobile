@@ -50,8 +50,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
               }
             },
           ),
-          _buildOverlay(),
-          _buildHeader(),
+          _buildScannerFrame(),
           if (_isProcessing)
             Container(
               color: Colors.black54,
@@ -64,68 +63,38 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
     );
   }
 
-  Widget _buildOverlay() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-      ),
-      child: Center(
-        child: Container(
-          width: 250,
-          height: 250,
-          decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFF6366F1), width: 2),
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Stack(
-            children: [
-              _ScannerCorner(top: 0, left: 0, rotation: 0),
-              _ScannerCorner(top: 0, right: 0, rotation: 1.5708),
-              _ScannerCorner(bottom: 0, left: 0, rotation: 4.7124),
-              _ScannerCorner(bottom: 0, right: 0, rotation: 3.14159),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Positioned(
-      top: 60,
-      left: 20,
-      right: 20,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildScannerFrame() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'LocalPay Go',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Scan VietQR to pay with Crypto',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white70,
-                ),
-              ),
-            ],
+          Container(
+            width: 260,
+            height: 260,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              border: Border.all(color: Colors.white24, width: 2),
+            ),
+            child: Stack(
+              children: [
+                _ScannerCorner(top: -2, left: -2, rotation: 0),
+                _ScannerCorner(top: -2, right: -2, rotation: 1.5708),
+                _ScannerCorner(bottom: -2, left: -2, rotation: 4.7124),
+                _ScannerCorner(bottom: -2, right: -2, rotation: 3.14159),
+              ],
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.account_balance_wallet_outlined, size: 32, color: Color(0xFF6366F1)),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const WalletSetupScreen()),
-              );
-            },
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(30),
+            ),
+            child: const Text(
+              'Align QR code within frame',
+              style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+            ),
           ),
         ],
       ),
