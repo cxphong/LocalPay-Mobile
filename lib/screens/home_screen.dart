@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:localpay_mobile/providers/wallet_provider.dart';
 import 'package:intl/intl.dart';
+import 'package:localpay_mobile/screens/deposit_screen.dart';
+import 'package:localpay_mobile/screens/withdraw_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -11,25 +13,29 @@ class HomeScreen extends StatelessWidget {
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
     
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // Mesh-like background
           _buildBackground(),
-          
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(),
-                  const SizedBox(height: 32),
-                  _buildBalanceSection(context, currencyFormat),
-                  const SizedBox(height: 32),
-                  _buildQuickActions(context),
-                  const SizedBox(height: 32),
-                  _buildRecentActivity(),
-                ],
+            child: RefreshIndicator(
+              onRefresh: () => context.read<WalletProvider>().refreshBalance(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(),
+                    const SizedBox(height: 24),
+                    _buildBalanceSection(context, currencyFormat),
+                    const SizedBox(height: 32),
+                    _buildQuickActions(context),
+                    const SizedBox(height: 40),
+                    _buildRecentActivity(),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ),
@@ -40,40 +46,21 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildBackground() {
     return Positioned.fill(
-      child: Container(
-        decoration: const BoxDecoration(
-          color: Color(0xFF0F172A),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -100,
-              right: -50,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF6366F1).withOpacity(0.15),
-                ),
-                child: const SizedBox.shrink(),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6366F1).withOpacity(0.03),
               ),
             ),
-            Positioned(
-              bottom: 100,
-              left: -100,
-              child: Container(
-                width: 400,
-                height: 400,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF8B5CF6).withOpacity(0.1),
-                ),
-                child: const SizedBox.shrink(),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -82,51 +69,74 @@ class HomeScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           children: [
-            Text(
-              'Welcome back,',
-              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 16),
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Center(
+                child: Text(
+                  'LP',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+              ),
             ),
-            const Text(
-              'LocalPay User',
-              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Good morning,',
+                  style: TextStyle(color: const Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.w500),
+                ),
+                const Text(
+                  'LocalPay User',
+                  style: TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
           ],
         ),
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.1),
+                color: const Color(0xFFFEF3C7),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withOpacity(0.2)),
               ),
               child: const Text(
                 'DEVNET',
-                style: TextStyle(color: Colors.amber, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                style: TextStyle(color: Color(0xFFD97706), fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.notifications_none, color: Colors.white, size: 20),
-            ),
+            const SizedBox(width: 8),
+            _buildHeaderIcon(Icons.notifications_none_rounded),
           ],
         ),
       ],
     );
   }
 
+  Widget _buildHeaderIcon(IconData icon) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Icon(icon, color: const Color(0xFF0F172A), size: 22),
+    );
+  }
+
   Widget _buildBalanceSection(BuildContext context, NumberFormat format) {
     final wallet = context.watch<WalletProvider>();
-    // Mocking conversion for dashboard experience
     final solPriceVND = 2500000.0;
     final usdcPriceVND = 25400.0;
     
@@ -136,11 +146,17 @@ class HomeScreen extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
+        color: const Color(0xFF0F172A), // Keep one dark "premium" element
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F172A).withOpacity(0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,58 +164,51 @@ class HomeScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'TOTAL BALANCE',
-                style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+              const Text(
+                'Total Balance',
+                style: TextStyle(color: Colors.white60, fontSize: 14, fontWeight: FontWeight.w500),
               ),
-              Icon(Icons.remove_red_eye_outlined, size: 20, color: Colors.white.withOpacity(0.5)),
+              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.white.withOpacity(0.3)),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             format.format(totalVND),
-            style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w800),
+            style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildTokenChip('SOL', wallet.solBalance, const Color(0xFF6366F1)),
-                const SizedBox(width: 8),
-                _buildTokenChip('USDC', wallet.tokenBalances['USDC'] ?? 0, const Color(0xFF2775CA)),
-                const SizedBox(width: 8),
-                _buildTokenChip('USDT', wallet.tokenBalances['USDT'] ?? 0, const Color(0xFF26A17B)),
-              ],
-            ),
+          const Divider(color: Colors.white10, height: 1),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildAssetInfo('SOL', wallet.solBalance, Icons.account_balance_wallet_rounded),
+              _buildAssetInfo('USDC', wallet.tokenBalances['USDC'] ?? 0, Icons.monetization_on_rounded),
+              _buildAssetInfo('USDT', wallet.tokenBalances['USDT'] ?? 0, Icons.currency_exchange_rounded),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTokenChip(String symbol, double amount, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            symbol,
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 11),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            amount.toStringAsFixed(amount < 1 ? 4 : 2),
-            style: TextStyle(color: color.withOpacity(0.9), fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-        ],
-      ),
+  Widget _buildAssetInfo(String label, double amount, IconData icon) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 12, color: const Color(0xFF6366F1)),
+            const SizedBox(width: 4),
+            Text(label, style: const TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          amount.toStringAsFixed(amount < 1 ? 3 : 2),
+          style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 
@@ -207,10 +216,10 @@ class HomeScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildActionItem(context, 'Send', Icons.arrow_upward, const Color(0xFF6366F1)),
-        _buildActionItem(context, 'Receive', Icons.arrow_downward, const Color(0xFF10B981)),
-        _buildActionItem(context, 'Airdrop', Icons.bolt, const Color(0xFFF59E0B)),
-        _buildActionItem(context, 'More', Icons.more_horiz, Colors.white38),
+        _buildActionItem(context, 'Send', Icons.arrow_upward_rounded, const Color(0xFF6366F1)),
+        _buildActionItem(context, 'Receive', Icons.arrow_downward_rounded, const Color(0xFF10B981)),
+        _buildActionItem(context, 'Scan QR', Icons.qr_code_scanner_rounded, const Color(0xFF0F172A)),
+        _buildActionItem(context, 'More', Icons.grid_view_rounded, const Color(0xFF64748B)),
       ],
     );
   }
@@ -220,25 +229,33 @@ class HomeScreen extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: () {
-            if (label == 'Airdrop') {
-              context.read<WalletProvider>().requestAirdrop();
+            if (label == 'Send') {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const WithdrawScreen()));
+            } else if (label == 'Receive') {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const DepositScreen()));
             }
           },
           child: Container(
-            width: 64,
-            height: 64,
+            width: 60,
+            height: 60,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              shape: BoxShape.circle,
-              border: Border.all(color: color.withOpacity(0.2)),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: Icon(icon, color: color, size: 26),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Text(
           label,
-          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.w500),
+          style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -252,57 +269,73 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Recent Activity',
-              style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              'Transactions',
+              style: TextStyle(color: Color(0xFF0F172A), fontSize: 20, fontWeight: FontWeight.bold),
             ),
             TextButton(
               onPressed: () {},
-              child: const Text('See All', style: TextStyle(color: Color(0xFF6366F1))),
+              child: const Text('View All', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        _buildActivityTile('Payment to Highlands Coffee', '- 45.000 ₫', 'Today, 2:45 PM', Icons.coffee, Colors.brown),
-        _buildActivityTile('Airdrop Received', '+ 2.0 SOL', 'Yesterday, 10:15 AM', Icons.bolt, Colors.amber),
-        _buildActivityTile('Payment to WinMart', '- 125.000 ₫', '24 Feb, 6:30 PM', Icons.shopping_bag, Colors.blue),
+        _buildActivityTile('Coffee at Starbucks', '- 95,000 ₫', 'Today, 09:41 AM', Icons.coffee_rounded, Colors.orange),
+        _buildActivityTile('Received from Alice', '+ 0.50 SOL', 'Yesterday, 04:20 PM', Icons.add_rounded, Colors.green),
+        _buildActivityTile('Supermarket', '- 245,000 ₫', 'Feb 28, 11:15 AM', Icons.shopping_bag_rounded, Colors.blue),
       ],
     );
   }
 
   Widget _buildActivityTile(String title, String amount, String time, IconData icon, Color color) {
+    final isPositive = amount.startsWith('+');
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: color, size: 20),
+            child: Icon(icon, color: color, size: 22),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text(time, style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12)),
+                Text(
+                  title,
+                  style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold, fontSize: 15),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  time,
+                  style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                ),
               ],
             ),
           ),
           Text(
             amount,
             style: TextStyle(
-              color: amount.startsWith('+') ? const Color(0xFF10B981) : Colors.white,
+              color: isPositive ? const Color(0xFF10B981) : const Color(0xFF0F172A),
               fontWeight: FontWeight.bold,
+              fontSize: 15,
             ),
           ),
         ],

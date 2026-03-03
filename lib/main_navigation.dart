@@ -34,19 +34,23 @@ class _MainNavigationState extends State<MainNavigation> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF0F172A),
-          border: Border(
-            top: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
-          ),
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
         ),
         child: BottomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
-          backgroundColor: Colors.transparent,
+          backgroundColor: Colors.white,
           elevation: 0,
           type: BottomNavigationBarType.fixed,
           selectedItemColor: const Color(0xFF6366F1),
-          unselectedItemColor: Colors.white38,
+          unselectedItemColor: const Color(0xFF94A3B8),
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           items: const [

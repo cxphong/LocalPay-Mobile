@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:solana/solana.dart';
@@ -138,6 +140,71 @@ class WalletProvider with ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  bool _isTransferring = false;
+  bool get isTransferring => _isTransferring;
+
+  Future<void> sendTransfer(String recipient, double amount, String tokenSymbol) async {
+    if (_keyPair == null || address == null) return;
+    
+    try {
+      _isTransferring = true;
+      notifyListeners();
+
+      // Convert amount to units (base units)
+      int units;
+      String mint;
+      if (tokenSymbol == 'SOL') {
+        units = (amount * 1e9).toInt();
+        mint = 'SOL';
+      } else if (tokenSymbol == 'USDC') {
+        units = (amount * 1e6).toInt();
+        mint = '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU'; // Devnet USDC
+      } else {
+        units = (amount * 1e6).toInt();
+        mint = 'EJwZgaBsW3btZHka6UnvAtvscTgt4S7nB1n3BndE3H9L'; // Devnet USDT
+      }
+
+      final serializedTx = await _apiService.buildTransferTx(address!, recipient, units, mint);
+      
+      final client = SolanaClient(
+        rpcUrl: Uri.parse(_rpcUrl),
+        websocketUrl: Uri.parse(_wsUrl),
+      );
+
+      final txBytes = base64Decode(serializedTx);
+      final sigCount = txBytes[0];
+      final messageBytes = txBytes.sublist(1 + (sigCount * 64));
+      
+      final signature = await _keyPair!.sign(messageBytes);
+      
+      late String encodedTx;
+      if (sigCount > 1) {
+        // Multi-sig (Gasless)
+        final newTxBytes = Uint8List.fromList(txBytes);
+        newTxBytes.setRange(1 + 64, 1 + 128, signature.bytes);
+        encodedTx = base64Encode(newTxBytes);
+      } else {
+        // Single-sig
+        final rawTx = Uint8List.fromList([1, ...signature.bytes, ...messageBytes]);
+        encodedTx = base64Encode(rawTx);
+      }
+
+      final txSignature = await client.rpcClient.sendTransaction(encodedTx);
+      debugPrint('Transfer submitted: $txSignature');
+
+      // Refresh balance after short delay
+      await Future.delayed(const Duration(seconds: 2));
+      await refreshBalance();
+      
+      _isTransferring = false;
+      notifyListeners();
+    } catch (e) {
+      _isTransferring = false;
+      notifyListeners();
+      rethrow;
     }
   }
 }

@@ -9,12 +9,13 @@ class OnboardingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
           _buildBackground(),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(32.0),
+              padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -26,17 +27,19 @@ class OnboardingScreen extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -1,
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'The easiest way to pay for your local purchases using crypto on Solana.',
+                    'The easiest way to pay for your local purchases using digital assets on Solana.',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.white.withOpacity(0.6),
+                      color: Color(0xFF64748B),
                       height: 1.5,
+                      fontWeight: FontWeight.w500,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -54,38 +57,41 @@ class OnboardingScreen extends StatelessWidget {
 
   Widget _buildBackground() {
     return Positioned.fill(
-      child: Container(
-        decoration: const BoxDecoration(color: Color(0xFF0F172A)),
-        child: Stack(
-          children: [
-            Positioned(
-              top: -100,
-              left: -50,
-              child: Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF6366F1).withOpacity(0.1),
-                ),
+      child: Stack(
+        children: [
+          Positioned(
+            top: -150,
+            left: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF6366F1).withOpacity(0.03),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLogo() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: const Color(0xFF6366F1).withOpacity(0.1),
+        color: Colors.white,
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF6366F1).withOpacity(0.3), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6366F1).withOpacity(0.1),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: const Icon(
-        Icons.account_balance_wallet_outlined,
+        Icons.account_balance_wallet_rounded,
         size: 80,
         color: Color(0xFF6366F1),
       ),
@@ -97,7 +103,7 @@ class OnboardingScreen extends StatelessWidget {
       children: [
         SizedBox(
           width: double.infinity,
-          height: 64,
+          height: 60,
           child: ElevatedButton(
             onPressed: () {
               context.read<WalletProvider>().createWallet();
@@ -105,19 +111,19 @@ class OnboardingScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF6366F1),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
               elevation: 0,
             ),
             child: const Text(
-              'GET STARTED',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+              'Get Started',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
           ),
         ),
         const SizedBox(height: 16),
         SizedBox(
           width: double.infinity,
-          height: 64,
+          height: 60,
           child: OutlinedButton(
             onPressed: () {
               Navigator.of(context).push(
@@ -125,12 +131,13 @@ class OnboardingScreen extends StatelessWidget {
               );
             },
             style: OutlinedButton.styleFrom(
-              side: BorderSide(color: Colors.white.withOpacity(0.1)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              foregroundColor: const Color(0xFF64748B),
             ),
             child: const Text(
-              'I ALREADY HAVE A WALLET',
-              style: TextStyle(fontSize: 14, color: Colors.white70, fontWeight: FontWeight.w600),
+              'I have a wallet',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),

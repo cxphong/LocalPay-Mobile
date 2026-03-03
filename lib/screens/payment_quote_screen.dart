@@ -58,15 +58,20 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Confirm Payment'),
+        title: const Text('Confirm Payment', style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A))),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFF0F172A), size: 20),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Consumer<PaymentProvider>(
         builder: (context, provider, child) {
           if (provider.currentIntent == null) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)));
           }
 
           final intent = provider.currentIntent!;
@@ -74,31 +79,32 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
           final isFetching = provider.isFetchingQuote;
 
           return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   _buildMerchantHeader(intent),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 40),
                   if (quote != null) 
                     _buildHeroAmount(quote)
                   else
                     const Center(child: Padding(
-                      padding: EdgeInsets.all(40.0),
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      padding: EdgeInsets.all(48.0),
+                      child: CircularProgressIndicator(strokeWidth: 3, color: Color(0xFF6366F1)),
                     )),
                   const SizedBox(height: 48),
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Pay with',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white70),
+                      'Payment Method',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   _buildTokenSelector(),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 32),
                   if (quote != null) ...[
                     _buildQuoteBreakdown(quote, isFetching),
                     const SizedBox(height: 40),
@@ -107,6 +113,7 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
                     else 
                       _buildNoWalletWarning(context),
                   ],
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -120,23 +127,23 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.redAccent.withOpacity(0.1),
+        color: const Color(0xFFFFF7ED),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+        border: Border.all(color: const Color(0xFFFED7AA)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 48),
+          const Icon(Icons.error_outline_rounded, color: Color(0xFFD97706), size: 48),
           const SizedBox(height: 16),
           const Text(
-            'No wallet setup',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            'Wallet Required',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF92400E)),
           ),
           const SizedBox(height: 8),
           const Text(
-            'You need to create a wallet and add funds (Airdrop) before you can make a payment.',
+            'You must set up a wallet and add test funds before you can pay.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70),
+            style: TextStyle(color: Color(0xFFD97706), fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 24),
           SizedBox(
@@ -149,10 +156,12 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
+                backgroundColor: const Color(0xFFD97706),
+                foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                elevation: 0,
               ),
-              child: const Text('SETUP WALLET', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('Setup Wallet', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -164,22 +173,23 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          width: 72,
+          height: 72,
           decoration: BoxDecoration(
-            color: const Color(0xFF6366F1).withOpacity(0.1),
-            shape: BoxShape.circle,
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(24),
           ),
-          child: const Icon(Icons.storefront, color: Color(0xFF6366F1), size: 32),
+          child: const Icon(Icons.storefront_rounded, color: Color(0xFF6366F1), size: 36),
         ),
         const SizedBox(height: 16),
         Text(
           intent.merchantName,
-          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
         ),
         const SizedBox(height: 4),
-        Text(
-          'Merchant Payment',
-          style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 14),
+        const Text(
+          'Verified LocalPay Merchant',
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 13, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -190,12 +200,12 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
       children: [
         Text(
           '${quote.amountCrypto} ${quote.token}',
-          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.w800, color: Colors.white),
+          style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: Color(0xFF0F172A), letterSpacing: -1),
         ),
         const SizedBox(height: 8),
         Text(
           '≈ ${currencyFormat.format(context.watch<PaymentProvider>().currentIntent?.amountVnd ?? 0)}',
-          style: TextStyle(fontSize: 18, color: Colors.white.withOpacity(0.5), fontWeight: FontWeight.w500),
+          style: const TextStyle(fontSize: 18, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -215,16 +225,16 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
               margin: const EdgeInsets.symmetric(horizontal: 4),
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF1E293B),
+                color: isSelected ? const Color(0xFF0F172A) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: isSelected ? Colors.transparent : Colors.white10),
+                border: Border.all(color: isSelected ? const Color(0xFF0F172A) : const Color(0xFFE2E8F0), width: 1.5),
               ),
               child: Center(
                 child: Text(
                   token,
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: isSelected ? Colors.white : Colors.white70,
+                    color: isSelected ? Colors.white : const Color(0xFF64748B),
                   ),
                 ),
               ),
@@ -239,26 +249,26 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
+        border: Border.all(color: const Color(0xFFF1F5F9)),
       ),
       child: Column(
         children: [
-          _buildRow('Exchange Rate', '1 ${quote.token} = ${NumberFormat.compactSimpleCurrency(locale: 'vi_VN', name: '₫').format(quote.rate)}', isPending: isFetching),
+          _buildRow('Exchange Rate', '1 ${quote.token} = ${NumberFormat.compactSimpleCurrency(locale: 'vi_VN', name: '₫', decimalDigits: 0).format(quote.rate)}', isPending: isFetching),
           const SizedBox(height: 16),
-          _buildRow('Network Fee', 'Free (Demo)', color: Colors.green),
+          _buildRow('Service fee', 'Free', color: const Color(0xFF10B981)),
           const SizedBox(height: 20),
-          const Divider(color: Colors.white10),
+          const Divider(color: Color(0xFFE2E8F0), height: 1),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Quote expires in', style: TextStyle(color: Colors.white54)),
+              const Text('Rate expires in', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
               Row(
                 children: [
-                  Icon(Icons.timer_outlined, size: 14, color: _secondsRemaining < 5 ? Colors.redAccent : const Color(0xFF6366F1)),
-                  const SizedBox(width: 4),
+                  Icon(Icons.timer_rounded, size: 16, color: _secondsRemaining < 5 ? Colors.redAccent : const Color(0xFF6366F1)),
+                  const SizedBox(width: 6),
                   Text(
                     '${_secondsRemaining}s',
                     style: TextStyle(
@@ -279,15 +289,15 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(color: Colors.white54)),
+        Text(label, style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w500)),
         Row(
           children: [
             if (isPending)
               const Padding(
                 padding: EdgeInsets.only(right: 8.0),
-                child: SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white38)),
+                child: SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF94A3B8))),
               ),
-            Text(value, style: TextStyle(fontWeight: FontWeight.w600, color: color ?? Colors.white)),
+            Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color ?? const Color(0xFF0F172A))),
           ],
         ),
       ],
@@ -300,7 +310,7 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
 
     return SizedBox(
       width: double.infinity,
-      height: 64,
+      height: 60,
       child: ElevatedButton(
         onPressed: (isLoading || isQuoteExpired) ? null : () async {
           final wallet = context.read<WalletProvider>();
@@ -314,12 +324,12 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF6366F1),
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           elevation: 0,
         ),
         child: isLoading 
-          ? const CircularProgressIndicator(color: Colors.white)
-          : Text(isQuoteExpired ? 'REFRESHING QUOTE...' : 'CONFIRM PAYMENT', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+          : Text(isQuoteExpired ? 'Refreshing Rate...' : 'Pay with ${selectedToken}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
       ),
     );
   }

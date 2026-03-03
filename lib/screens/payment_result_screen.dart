@@ -8,6 +8,7 @@ class PaymentResultScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Consumer<PaymentProvider>(
         builder: (context, provider, child) {
           final isSuccess = provider.step == PaymentStep.success;
@@ -15,49 +16,51 @@ class PaymentResultScreen extends StatelessWidget {
           
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(32.0),
+              padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildIcon(provider),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 48),
                   Text(
                     _getTitle(provider),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Color(0xFF0F172A), letterSpacing: -1),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     _getMessage(provider),
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16, color: Colors.white70),
+                    style: const TextStyle(fontSize: 16, color: Color(0xFF64748B), fontWeight: FontWeight.w500, height: 1.5),
                   ),
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 64),
                   if (provider.step == PaymentStep.executing)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
+                      padding: const EdgeInsets.only(bottom: 24.0),
                       child: TextButton(
                         onPressed: () => provider.simulateSuccess(),
-                        child: const Text(
+                        child: Text(
                           'SIMULATE SUCCESS (DEBUG)',
-                          style: TextStyle(color: Colors.white24, fontSize: 12),
+                          style: TextStyle(color: Colors.black.withOpacity(0.05), fontSize: 10, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
                   if (!isExecuting)
                     SizedBox(
                       width: double.infinity,
-                      height: 56,
-                      child: OutlinedButton(
+                      height: 60,
+                      child: ElevatedButton(
                         onPressed: () {
                           provider.reset();
                           Navigator.of(context).popUntil((route) => route.isFirst);
                         },
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF6366F1)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F172A),
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          elevation: 0,
                         ),
-                        child: const Text('CLOSE', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text('Back to Home', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                       ),
                     ),
                 ],
@@ -74,22 +77,24 @@ class PaymentResultScreen extends StatelessWidget {
       return const SizedBox(
         width: 100,
         height: 100,
-        child: CircularProgressIndicator(strokeWidth: 8, color: Color(0xFF6366F1)),
+        child: CircularProgressIndicator(strokeWidth: 4, color: Color(0xFF6366F1)),
       );
     }
     
     final isSuccess = provider.step == PaymentStep.success;
     return Container(
-      width: 100,
-      height: 100,
+      width: 120,
+      height: 120,
       decoration: BoxDecoration(
-        color: isSuccess ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+        color: isSuccess ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
         shape: BoxShape.circle,
       ),
-      child: Icon(
-        isSuccess ? Icons.check_circle_rounded : Icons.error_rounded,
-        size: 80,
-        color: isSuccess ? Colors.green : Colors.red,
+      child: Center(
+        child: Icon(
+          isSuccess ? Icons.check_rounded : Icons.close_rounded,
+          size: 72,
+          color: isSuccess ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+        ),
       ),
     );
   }
