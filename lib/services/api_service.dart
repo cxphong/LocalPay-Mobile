@@ -4,13 +4,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:localpay_mobile/models/payment_intent.dart';
 import 'package:localpay_mobile/models/fx_quote.dart';
 import 'package:localpay_mobile/models/payment_status.dart';
+import 'package:localpay_mobile/models/transaction.dart'; // Added import
+import 'package:flutter/foundation.dart'; // Added for debugPrint
 
 class ApiService {
   final String baseUrl;
   final SupabaseClient _supabase = Supabase.instance.client;
 
   ApiService({String? baseUrl}) 
-    : baseUrl = baseUrl ?? const String.fromEnvironment('API_BASE_URL', defaultValue: 'https://localpay.fly.dev/api/v1');
+    : baseUrl = baseUrl ?? const String.fromEnvironment('API_BASE_URL', defaultValue: "http://localhost:8080/api/v1");//defaultValue: 'https://localpay.fly.dev/api/v1');
 
   Map<String, String> _getHeaders() {
     final session = _supabase.auth.currentSession;
@@ -53,13 +55,15 @@ class ApiService {
     }
   }
 
-  Future<PaymentIntent> executePayment(String intentId, String userPublicKey) async {
+  Future<PaymentIntent> executePayment(String intentId, String userPublicKey, String signature, String? description) async {
     final response = await http.post(
       Uri.parse('$baseUrl/payments/execute'),
       headers: _getHeaders(),
       body: jsonEncode({
         'intent_id': intentId,
         'user_public_key': userPublicKey,
+        'signature': signature,
+        'description': description ?? '',
       }),
     );
 
@@ -72,29 +76,54 @@ class ApiService {
   }
 
   Future<PaymentStatus> checkStatus(String intentId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/payments/status/$intentId'),
-      headers: _getHeaders(),
-    );
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/payments/status/$intentId'),
+        headers: _getHeaders(),
+      );
 
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      return PaymentStatus.fromJson(decoded['data']);
-    } else {
-      throw Exception('Failed to check status: ${response.body}');
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        return PaymentStatus.fromJson(decoded['data']);
+      } else {
+        throw Exception('Failed to check status: ${response.body}');
+      }
+    } catch (e) {
+      debugPrint('Error getting payment status: $e');
+      rethrow;
     }
   }
 
-  Future<void> simulateSuccess(String intentId) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/payments/simulate-success/$intentId'),
-      headers: _getHeaders(),
-    );
+  Future<List<Transaction>> getTransactionHistory() async {
+    try {
+      final token = Supabase.instance.client.auth.currentSession?.accessToken;
+      if (token == null) throw Exception('Not authenticated');
 
-    if (response.statusCode != 200) {
-      throw Exception('Failed to simulate success: ${response.body}');
+      final response = await http.get(
+        Uri.parse('$baseUrl/payments/history'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          final List<dynamic> historyData = data['data'];
+          return historyData.map((item) => Transaction.fromJson(item)).toList();
+        } else {
+          throw Exception(data['error'] ?? 'Unknown error');
+        }
+      } else {
+        throw Exception('Failed to fetch history: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error getting transaction history: $e');
+      rethrow;
     }
   }
+
 
   Future<String> requestAirdrop(String address) async {
     final response = await http.post(
@@ -170,6 +199,17 @@ class ApiService {
       return data['data']['serialized_tx'];
     } else {
       throw Exception('Failed to build transfer transaction: ${response.body}');
+    }
+  }
+
+  Future<void> simulateSuccess(String intentId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/payments/simulate-success/$intentId'),
+      headers: _getHeaders(),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to simulate success: ${response.body}');
     }
   }
 }

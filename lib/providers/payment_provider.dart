@@ -16,6 +16,7 @@ class PaymentProvider with ChangeNotifier {
   PaymentIntent? currentIntent;
   FxQuote? currentQuote;
   PaymentStatus? finalStatus;
+  String? transactionDescription;
   String? error;
 
   void reset() {
@@ -23,6 +24,7 @@ class PaymentProvider with ChangeNotifier {
     currentIntent = null;
     currentQuote = null;
     finalStatus = null;
+    transactionDescription = null;
     error = null;
     notifyListeners();
   }
@@ -68,8 +70,20 @@ class PaymentProvider with ChangeNotifier {
       step = PaymentStep.executing;
       notifyListeners();
 
-      final updatedIntent = await _apiService.executePayment(currentIntent!.id, keyPair.address);
+      // Sign the intent ID to authorize the request
+      final authSignature = await keyPair.sign(utf8.encode(currentIntent!.id));
+      
+      final updatedIntent = await _apiService.executePayment(
+        currentIntent!.id, 
+        keyPair.address, 
+        base64Encode(authSignature.bytes),
+        transactionDescription
+      );
       currentIntent = updatedIntent;
+
+      
+      // Start polling immediately so that a simulated success can be caught fast
+      pollStatus();
 
       if (updatedIntent.serializedTx != null) {
         final client = SolanaClient(
@@ -89,30 +103,26 @@ class PaymentProvider with ChangeNotifier {
           late String encodedTx;
           if (sigCount > 1) {
             // Gasless case: Backend is 1st signer (Fee Payer), User is 2nd signer
-            // Replace the placeholder (2nd signature) in the existing transaction bytes
             final newTxBytes = Uint8List.fromList(txBytes);
             newTxBytes.setRange(1 + 64, 1 + 128, signature.bytes);
             encodedTx = base64Encode(newTxBytes);
-            debugPrint('Multi-sig transaction prepared (Gasless)');
           } else {
             // Traditional case: Only user signs
             final rawTx = Uint8List.fromList([1, ...signature.bytes, ...messageBytes]);
             encodedTx = base64Encode(rawTx);
-            debugPrint('Single-sig transaction prepared');
           }
 
-          final txSignature = await client.rpcClient.sendTransaction(encodedTx);
-          debugPrint('Transaction submitted: $txSignature');
+          // We don't strictly await this to block the UI, as pollStatus will catch the final result
+          client.rpcClient.sendTransaction(encodedTx).then((sig) {
+            debugPrint('Transaction submitted: $sig');
+          }).catchError((e) {
+            debugPrint('Background transaction submission failed: $e');
+            // We don't set error/failure here because simulation might still succeed if triggered
+          });
         } catch (e) {
-          debugPrint('Transaction submission failed: $e');
-          error = 'Blockchain error: $e';
-          step = PaymentStep.failure;
-          notifyListeners();
-          return; // Stop here if transaction failed
+          debugPrint('Transaction preparation failed: $e');
         }
       }
-      
-      pollStatus();
     } catch (e) {
       error = e.toString();
       step = PaymentStep.failure;
@@ -149,6 +159,8 @@ class PaymentProvider with ChangeNotifier {
     if (currentIntent == null) return;
     try {
       await _apiService.simulateSuccess(currentIntent!.id);
+      // Immediately poll to trigger fast success UI transition
+      pollStatus();
     } catch (e) {
       error = e.toString();
       notifyListeners();

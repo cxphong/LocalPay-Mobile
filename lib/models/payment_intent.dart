@@ -5,6 +5,7 @@ class PaymentIntent {
   final String status;
   final String? escrowAddress;
   final String? serializedTx;
+  final String? description;
 
   PaymentIntent({
     required this.id,
@@ -13,6 +14,7 @@ class PaymentIntent {
     required this.status,
     this.escrowAddress,
     this.serializedTx,
+    this.description,
   });
 
   factory PaymentIntent.fromJson(Map<String, dynamic> json) {
@@ -24,6 +26,7 @@ class PaymentIntent {
       status: json['status'] ?? 'INITIATED',
       escrowAddress: json['escrow_address'],
       serializedTx: json['serialized_tx'],
+      description: json['description'],
     );
   }
 }

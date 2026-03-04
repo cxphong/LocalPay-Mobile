@@ -20,6 +20,7 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
   final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
   Timer? _timer;
   int _secondsRemaining = 30;
+  final _descriptionController = TextEditingController();
 
   @override
   void initState() {
@@ -33,6 +34,7 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -105,11 +107,15 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
                   const SizedBox(height: 12),
                   _buildTokenSelector(),
                   const SizedBox(height: 32),
+                  _buildDescriptionField(),
+                  const SizedBox(height: 32),
                   if (quote != null) ...[
                     _buildQuoteBreakdown(quote, isFetching),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: 24),
+                    _buildBalanceWarning(quote),
+                    const SizedBox(height: 24),
                     if (context.watch<WalletProvider>().hasWallet)
-                      _buildPayButton(provider)
+                      _buildPayButton(provider, quote)
                     else 
                       _buildNoWalletWarning(context),
                   ],
@@ -196,6 +202,10 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
   }
 
   Widget _buildHeroAmount(quote) {
+    final wallet = context.watch<WalletProvider>();
+    final balance = wallet.tokenBalances[selectedToken] ?? 0.0;
+    final hasSufficientFunds = balance >= quote.amountCrypto;
+
     return Column(
       children: [
         Text(
@@ -203,9 +213,30 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
           style: const TextStyle(fontSize: 44, fontWeight: FontWeight.bold, color: Color(0xFF0F172A), letterSpacing: -1),
         ),
         const SizedBox(height: 8),
-        Text(
-          '≈ ${currencyFormat.format(context.watch<PaymentProvider>().currentIntent?.amountVnd ?? 0)}',
-          style: const TextStyle(fontSize: 18, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '≈ ${currencyFormat.format(context.watch<PaymentProvider>().currentIntent?.amountVnd ?? 0)}',
+              style: const TextStyle(fontSize: 16, color: Color(0xFF94A3B8), fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: hasSufficientFunds ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Balance: ${balance.toStringAsFixed(selectedToken == 'SOL' ? 4 : 2)} $selectedToken',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: hasSufficientFunds ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -304,16 +335,58 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
     );
   }
 
-  Widget _buildPayButton(provider) {
+  Widget _buildBalanceWarning(quote) {
+    final wallet = context.watch<WalletProvider>();
+    final balance = wallet.tokenBalances[selectedToken] ?? 0.0;
+    final hasSufficientFunds = balance >= quote.amountCrypto;
+
+    if (hasSufficientFunds) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFCA5A5)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Insufficient Balance',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF991B1B)),
+                ),
+                Text(
+                  'You need ${(quote.amountCrypto - balance).toStringAsFixed(selectedToken == 'SOL' ? 4 : 2)} more $selectedToken to complete this payment.',
+                  style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPayButton(provider, quote) {
     final isLoading = provider.step == PaymentStep.executing;
     final isQuoteExpired = _secondsRemaining <= 0;
+    final wallet = context.watch<WalletProvider>();
+    final balance = wallet.tokenBalances[selectedToken] ?? 0.0;
+    final hasSufficientFunds = balance >= quote.amountCrypto;
+
+    final isDisabled = isLoading || isQuoteExpired || !hasSufficientFunds;
 
     return SizedBox(
       width: double.infinity,
       height: 60,
       child: ElevatedButton(
-        onPressed: (isLoading || isQuoteExpired) ? null : () async {
-          final wallet = context.read<WalletProvider>();
+        onPressed: isDisabled ? null : () async {
           await provider.confirmPayment(wallet.keyPair!);
           if (mounted) {
             Navigator.of(context).pushReplacement(
@@ -329,8 +402,52 @@ class _PaymentQuoteScreenState extends State<PaymentQuoteScreen> {
         ),
         child: isLoading 
           ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
-          : Text(isQuoteExpired ? 'Refreshing Rate...' : 'Pay with ${selectedToken}', style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+          : Text(
+              isQuoteExpired 
+                ? 'Refreshing Rate...' 
+                : !hasSufficientFunds 
+                  ? 'Insufficient Funds' 
+                  : 'Pay with ${selectedToken}', 
+              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
       ),
+    );
+  }
+
+  Widget _buildDescriptionField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Add a note',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _descriptionController,
+          onChanged: (val) => context.read<PaymentProvider>().transactionDescription = val,
+          decoration: InputDecoration(
+            hintText: 'What is this for? (Optional)',
+            hintStyle: const TextStyle(color: Color(0xFF94A3B8), fontSize: 15),
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFF1F5F9)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFFF1F5F9)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+            ),
+          ),
+          style: const TextStyle(color: Color(0xFF0F172A), fontSize: 15, fontWeight: FontWeight.w500),
+        ),
+      ],
     );
   }
 }

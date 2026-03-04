@@ -32,7 +32,7 @@ class HomeScreen extends StatelessWidget {
                     const SizedBox(height: 32),
                     _buildQuickActions(context),
                     const SizedBox(height: 40),
-                    _buildRecentActivity(),
+                    _buildRecentActivity(context),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -261,7 +261,11 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentActivity() {
+  Widget _buildRecentActivity(BuildContext context) {
+    final wallet = context.watch<WalletProvider>();
+    final transactions = wallet.transactions;
+    final timeFormat = DateFormat('MMM dd, hh:mm a');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -273,15 +277,44 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(color: Color(0xFF0F172A), fontSize: 20, fontWeight: FontWeight.bold),
             ),
             TextButton(
-              onPressed: () {},
-              child: const Text('View All', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
+              onPressed: () => wallet.fetchHistory(),
+              child: const Text('Refresh', style: TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold)),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        _buildActivityTile('Coffee at Starbucks', '- 95,000 ₫', 'Today, 09:41 AM', Icons.coffee_rounded, Colors.orange),
-        _buildActivityTile('Received from Alice', '+ 0.50 SOL', 'Yesterday, 04:20 PM', Icons.add_rounded, Colors.green),
-        _buildActivityTile('Supermarket', '- 245,000 ₫', 'Feb 28, 11:15 AM', Icons.shopping_bag_rounded, Colors.blue),
+        if (transactions.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40.0),
+              child: Column(
+                children: [
+                  Icon(Icons.history_rounded, size: 48, color: Colors.grey.withOpacity(0.5)),
+                  const SizedBox(height: 16),
+                  Text(
+                    'No transactions yet',
+                    style: TextStyle(color: Colors.grey.withOpacity(0.8), fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...transactions.take(5).map((tx) {
+            final isNegative = true; // For now all payments are out
+            final symbol = tx.token == 'SOL' ? 'SOL' : '₫';
+            final amountStr = isNegative 
+              ? '- ${tx.amountVnd > 0 ? NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(tx.amountVnd) : tx.amountUsdt.toStringAsFixed(2) + " " + tx.token}'
+              : '+ ${tx.amountVnd > 0 ? NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(tx.amountVnd) : tx.amountUsdt.toStringAsFixed(2) + " " + tx.token}';
+            
+            return _buildActivityTile(
+              tx.description,
+              amountStr,
+              timeFormat.format(tx.createdAt),
+              tx.token == 'SOL' ? Icons.account_balance_wallet_rounded : Icons.monetization_on_rounded,
+              tx.status == 'COMPLETED' ? Colors.green : Colors.orange,
+            );
+          }),
       ],
     );
   }

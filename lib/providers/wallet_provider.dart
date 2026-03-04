@@ -5,6 +5,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:solana/solana.dart';
 import 'package:bip39/bip39.dart' as bip39;
 import 'package:localpay_mobile/services/api_service.dart';
+import 'package:localpay_mobile/models/transaction.dart';
 
 class WalletProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -21,6 +22,7 @@ class WalletProvider with ChangeNotifier {
   String? _mnemonic;
   double _solBalance = 0;
   Map<String, double> _tokenBalances = {};
+  List<Transaction> _transactions = [];
   bool _isLoading = false;
   String? _error;
   
@@ -29,6 +31,7 @@ class WalletProvider with ChangeNotifier {
   String? get mnemonic => _mnemonic;
   double get solBalance => _solBalance;
   Map<String, double> get tokenBalances => _tokenBalances;
+  List<Transaction> get transactions => _transactions;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get hasWallet => _keyPair != null;
@@ -92,8 +95,22 @@ class WalletProvider with ChangeNotifier {
       };
       _solBalance = _tokenBalances['SOL'] ?? 0;
       notifyListeners();
+      // Fetch history alongside balance
+      await fetchHistory();
     } catch (e) {
       debugPrint('Failed to refresh balances: $e');
+    }
+  }
+
+  Future<void> fetchHistory() async {
+    if (_keyPair == null) return;
+    
+    try {
+      final history = await _apiService.getTransactionHistory();
+      _transactions = history;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Failed to fetch transaction history: $e');
     }
   }
 
